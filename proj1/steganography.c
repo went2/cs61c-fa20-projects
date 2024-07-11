@@ -20,9 +20,12 @@
 
 //Determines what color the cell at the given row/col should be. This should not affect Image, and should allocate space for a new Color.
 Color *evaluateOnePixel(Image *image, int row, int col) {
-	uint8_t blue = image->image[row][col].B;
+
+  Color *new_color = (Color *)malloc(sizeof(Color));
+  if(new_color == NULL) return NULL;
+
+  uint8_t blue = image->image[row][col].B;
   uint8_t lsb = blue & 1;
-  Color *new_color;
   if(lsb == 1) {
     new_color->R = new_color->G = new_color->B = 255;
   } else {
@@ -33,13 +36,30 @@ Color *evaluateOnePixel(Image *image, int row, int col) {
 
 //Given an image, creates a new image extracting the LSB of the B channel.
 Image *steganography(Image *image) {
-	Image *new_image = malloc(sizeof(Image));
+	Image *new_image = (Image *)malloc(sizeof(Image));
+  if(new_image == NULL) return NULL;
   new_image->rows = image->rows;
   new_image->cols = image->cols;
   new_image->image = malloc(image->rows * sizeof(Color*));
+  if(new_image->image == NULL) {
+    free(new_image);
+    return NULL;
+  }
   for(int i=0; i<image->rows; i++) {
+    new_image->image[i] = malloc(image->cols * sizeof(Color));
+    if (new_image->image[i] == NULL) {
+      for (int j=0; j<i; j++) {
+        free(new_image->image[j]);
+      }
+      free(new_image->image);
+      free(new_image);
+      return NULL;
+    }
     for(int j=0; j<image->cols; j++) {
-      new_image->image[i][j] = *evaluateOnePixel(image, i, j);
+      Color *pixel = evaluateOnePixel(image, i, j);
+      if(pixel == NULL) return NULL;
+      new_image->image[i][j] = *pixel;
+      free(pixel);
     }
   }
   return new_image;
@@ -63,9 +83,18 @@ int main(int argc, char **argv) {
   char *filename = argv[1];
 
   Image *image = readData(filename);
+  if(image == NULL) return -1;
+
   Image *new_image = steganography(image);
-  readData(new_image);
+  if(new_image == NULL) {
+    freeImage(image);
+    return -1;
+  }
+  writeData(new_image);
   freeImage(image);
   freeImage(new_image);
   return 0;
 }
+
+
+

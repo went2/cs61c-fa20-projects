@@ -25,11 +25,7 @@
 // Make sure that you close the file with fclose before returning.
 Image *readData(char *filename) {
   FILE *fp = fopen(filename, "r");
-  // if (!fp) {
-  //   perror("File opening failed.");
-  //   return EXIT_FAILURE;
-  // }
-
+  
   char format[3];
   uint32_t width, height, max_color;
   
