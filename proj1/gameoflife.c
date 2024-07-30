@@ -92,7 +92,7 @@ Image *life(Image *image, uint32_t rule) {
   }
 
   for(int i=0; i<image->rows; i++) {
-    new_image->image[1] = malloc(image->cols * sizeof(Color));
+    new_image->image[i] = malloc(image->cols * sizeof(Color));
     if (new_image->image[i] == NULL) {
       for (int j=0; j<i; j++) {
         free(new_image->image[j]);
