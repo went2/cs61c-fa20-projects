@@ -17,11 +17,20 @@
 #include <inttypes.h>
 #include "imageloader.h"
 
-uint32_t hex2int(const char *hex);
-uint8_t alive_neighbor(Image*, int, int);
+typedef struct ColorCount {
+	uint8_t R;
+	uint8_t G;
+	uint8_t B;
+  uint8_t count;
+} ColorCount;
 
-uint8_t alive_neighbor(Image *image, int row, int col) {
-  uint8_t count = 0;
+uint32_t hex2int(const char *hex);
+ColorCount *alive_neighbor(Image*, int, int);
+
+ColorCount *alive_neighbor(Image *image, int row, int col) {
+  ColorCount *colorCount = (ColorCount *)malloc(sizeof(ColorCount));
+  if(colorCount == NULL) return NULL;
+  colorCount->count = 0;
 
   for(int i=row-1; i<=row+1; i++) {
     for(int j=col-1; j<=col+1; j++) {
@@ -43,12 +52,21 @@ uint8_t alive_neighbor(Image *image, int row, int col) {
       }
 
       // check if the neighbor is alive
-      if(image->image[real_row][real_col].R == 255) 
-        count++;
+      if(image->image[real_row][real_col].R != 0 || 
+         image->image[real_row][real_col].G != 0 ||
+         image->image[real_row][real_col].B != 0
+      ) {
+        colorCount->count++;
+        colorCount->R = image->image[real_row][real_col].R;
+        colorCount->G = image->image[real_row][real_col].G;
+        colorCount->B = image->image[real_row][real_col].B;
+      }
+        
     }
   }
-  return count;
+  return colorCount;
 }
+
 //Determines what color the cell at the given row/col should be. This function allocates space for a new Color.
 //Note that you will need to read the eight neighbors of the cell in question. The grid "wraps", so we treat the top row as adjacent to the bottom row
 //and the left column as adjacent to the right column.
@@ -57,23 +75,28 @@ Color *evaluateOneCell(Image *image, int row, int col, uint32_t rule) {
   if(new_color == NULL) return NULL;
 
   uint8_t red = image->image[row][col].R;
-  // color in rule#1808 is either (255,255,255) or (0,0,0)
-  int curr_state = 0;
+  uint8_t green = image->image[row][col].G;
+  uint8_t blue = image->image[row][col].B;
+
+  int curr_state = 1;
   int LIVE_OFFSET = 9;
-  if(red == 255) {
-    curr_state = 1;
+  if(red == 0 && green == 0 && blue == 0) {
+    curr_state = 0;
   }
 
-  uint8_t alive_nei = alive_neighbor(image, row, col);
-  int next_state = (rule >> (alive_nei + curr_state*LIVE_OFFSET)) & 1;
+  ColorCount *cCount = alive_neighbor(image, row, col);
+  int next_state = (rule >> (cCount->count + curr_state*LIVE_OFFSET)) & 1;
 
-  // either 1 or 0
-  if(next_state == 1) {
-    new_color->R = new_color->G = new_color->B = 255;
-  } else {
+  // next_state is either 1 or 0
+  if(next_state == 0) {
     new_color->R = new_color->G = new_color->B = 0;
+  } if (next_state == 1) { // should use the neighbor's color
+    new_color->R = cCount->R;
+    new_color->G = cCount->G;
+    new_color->B = cCount->B;
   }
-
+  
+  free(cCount);
   return new_color;
 }
 
